@@ -180,7 +180,7 @@
       }).addTo(map);
 
       const icon = L.icon({
-        iconUrl: "https://markoko35390.github.io/breizhopticroc/logo.png",
+        iconUrl: "https://markoko35390.github.io/breizhopticroc/breizh_opticroc_logo.png",
         iconSize: [32, 32],
         iconAnchor: [16, 32],
         popupAnchor: [0, -32]
@@ -194,7 +194,7 @@
             const lng = parseFloat(entry.Longitude);
             if (!isNaN(lat) && !isNaN(lng)) {
               const marker = L.marker([lat, lng], { icon }).addTo(map);
-              marker.bindPopup(`<strong>${entry.Nom}</strong><br>${entry.CodePostal}<br>${entry.Message || ""}`);
+              marker.bindPopup(`<strong>${entry["Nom "]}</strong><br>${entry["CodePostal "]}<br>${entry["Message "] || ""}`);
             }
           });
         });
