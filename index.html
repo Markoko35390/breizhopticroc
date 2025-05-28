@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comparateur Breizh Opticroc</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f4f4f4;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      max-width: 800px;
+      margin: auto;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-top: 0.5rem;
+    }
+    button {
+      margin-top: 2rem;
+      padding: 0.7rem 1.5rem;
+      font-size: 1rem;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 2rem;
+      font-weight: bold;
+    }
+    #map {
+      height: 400px;
+      width: 100%;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Comparateur de Coût Annuel de Croquettes</h2>
+
+    <label>Poids de votre chien (kg) :
+      <input type="number" id="poidsChien" step="0.1">
+    </label>
+
+    <label>Marque actuelle :
+      <input type="text" id="marqueActuelle">
+    </label>
+
+    <label>Poids du sac actuel (kg) :
+      <input type="number" id="poidsSacActuel">
+    </label>
+
+    <label>Prix du sac actuel (€) :
+      <input type="number" id="prixSacActuel">
+    </label>
+
+    <label>Ration journalière actuelle (g) :
+      <input type="number" id="rationActuelle">
+    </label>
+
+    <label>Choisissez votre gamme Breizh Opticroc :
+      <select id="gammePremium">
+        <option value="top_energy">TOP ENERGY - 27,90€</option>
+        <option value="top_fish">TOP FISH - 34,00€</option>
+        <option value="top_junior">TOP JUNIOR - 36,00€</option>
+      </select>
+    </label>
+
+    <button onclick="calculerComparaison()">Calculer</button>
+    <div class="result" id="resultat"></div>
+
+    <h3>Souhaitez-vous mutualiser votre commande ?</h3>
+
+    <label>Nom :</label>
+    <input type="text" id="nom">
+
+    <label>Email :</label>
+    <input type="email" id="email">
+
+    <label>Code postal :</label>
+    <input type="text" id="codePostal">
+
+    <label>Message :</label>
+    <textarea id="message" rows="4"></textarea>
+
+    <button onclick="envoyerCoordonnees()">Envoyer mes coordonnées</button>
+    <div id="confirmation" style="margin-top: 1rem;"></div>
+
+    <h3>Carte des inscrits à la mutualisation</h3>
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-_53Sct-GUjt1FF85cqpAqHuY13XTG0yt7ftaGqBdzTgITgKTgDmiu1yAPKgfvFlE/exec";
+
+    function calculerComparaison() {
+      const poidsChien = parseFloat(document.getElementById("poidsChien").value);
+      const marque = document.getElementById("marqueActuelle").value || "votre marque actuelle";
+      const poidsSac = parseFloat(document.getElementById("poidsSacActuel").value);
+      const prixSac = parseFloat(document.getElementById("prixSacActuel").value);
+      const ration = parseFloat(document.getElementById("rationActuelle").value);
+      const gamme = document.getElementById("gammePremium").value;
+
+      if (!poidsChien || !poidsSac || !prixSac || !ration) {
+        document.getElementById("resultat").innerText = "Veuillez remplir tous les champs.";
+        return;
+      }
+
+      const prix = {
+        top_energy: 27.90,
+        top_fish: 34.00,
+        top_junior: 36.00
+      };
+      const rationParKg = {
+        top_energy: 12.5,
+        top_fish: 11,
+        top_junior: 15
+      };
+
+      const rationPremium = poidsChien * rationParKg[gamme];
+      const sacsActuels = Math.ceil((ration * 365 / 1000) / poidsSac);
+      const sacsPremium = Math.ceil((rationPremium * 365 / 1000) / 15);
+      const coutActuel = sacsActuels * prixSac;
+      const coutPremium = sacsPremium * prix[gamme];
+      const eco = (coutActuel - coutPremium).toFixed(2);
+      const color = eco > 0 ? 'green' : 'red';
+
+      document.getElementById("resultat").innerHTML = `
+        <p>Coût annuel avec <strong>${marque}</strong> : ${coutActuel.toFixed(2)} €</p>
+        <p>Coût annuel avec notre gamme <strong>${document.getElementById("gammePremium").selectedOptions[0].text}</strong> : ${coutPremium.toFixed(2)} €</p>
+        <p><strong style="color:${color};">Économie estimée : ${eco} €</strong></p>
+      `;
+    }
+
+    function envoyerCoordonnees() {
+      const data = {
+        nom: document.getElementById("nom").value,
+        email: document.getElementById("email").value,
+        codePostal: document.getElementById("codePostal").value,
+        message: document.getElementById("message").value
+      };
+
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+      .then(res => res.text())
+      .then(msg => {
+        document.getElementById("confirmation").innerHTML = `<p style='color:green;'>${msg}</p>`;
+      })
+      .catch(() => {
+        document.getElementById("confirmation").innerHTML = `<p style='color:red;'>Erreur lors de l'envoi</p>`;
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const map = L.map("map").setView([47.5, -2.5], 6);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: "© OpenStreetMap"
+      }).addTo(map);
+
+      const icon = L.icon({
+        iconUrl: "https://markoko35390.github.io/comparateur-breizhopticroc/logo.png",
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+      });
+
+      fetch("https://opensheet.elk.sh/11Myc1kzg1AoTv7UigUPWUeJROLFQ_mZ-s1hT9ou6J0I/inscriptions")
+        .then(res => res.json())
+        .then(data => {
+          data.forEach(entry => {
+            const lat = parseFloat(entry.Latitude);
+            const lng = parseFloat(entry.Longitude);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              const marker = L.marker([lat, lng], { icon }).addTo(map);
+              marker.bindPopup(`<strong>${entry.Nom}</strong><br>${entry.CodePostal}<br>${entry.Message || ""}`);
+            }
+          });
+        });
+    });
+  </script>
+</body>
+</html>
